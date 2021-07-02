@@ -93,6 +93,7 @@ def wrap_items(events, item_names):
                 "neEmEF": events["Jet_neEmEF"],
                 "neHEF": events["Jet_neHEF"],
                 "chHEF": events["Jet_chHEF"],
+                "chEmEF": events["Jet_chEmEF"],
                 "nConstituents": events["Jet_nConstituents"],
                 "btagDeepFlavB": events["Jet_btagDeepFlavB"],
                 "btagDeepFlavC": events["Jet_btagDeepFlavC"],
@@ -161,3 +162,28 @@ def select_muon(muons, selectedPhotons):
     muon_cut = pt_cut & eta_cut & dxy_cut & dz_cut & muonId_cut & dR_pho_cut 
 
     return muons[muon_cut]
+
+def select_jet(jets, selectedPhotons, selectedMuons, selectedElectrons, selectedTaus):
+    
+    pt_cut = jets.pt > 25 
+    eta_cut = abs(jets.eta) < 2.4 
+
+    dR_pho_cut =  ak.fill_none( jets.nearest( selectedPhotons, threshold = 0.4 ).pt, -1 ) < 0
+    dR_ele_cut =  ak.fill_none( jets.nearest( selectedElectrons, threshold = 0.4 ).pt, -1 ) < 0
+    dR_muon_cut =  ak.fill_none( jets.nearest( selectedMuons, threshold = 0.4 ).pt, -1 ) < 0
+    dR_tau_cut =  ak.fill_none( jets.nearest( selectedTaus, threshold = 0.4 ).pt, -1 ) < 0
+    #(lambda a,b: (a+b).mass)(photons_mod[:,0], photons_mod[:,1]), use this for metric
+
+    nemf_cut = jets.neEmEF < 0.99
+    nh_cut = jets.neHEF < 0.99
+    chf_cut = jets.chHEF > 0
+    chemf_cut = jets.chEmEF < 0.99
+    n_constituent_cut = jets.nConstituents > 1
+    """
+    Loose jet ID taken from flashgg: https://github.com/cms-analysis/flashgg/blob/dd6661a55448c403b46d1155510c67a313cd44a8/DataFormats/src/Jet.cc#L140-L155
+    """
+    jetId_cut = nemf_cut & nh_cut & chf_cut & chemf_cut & n_constituent_cut
+
+    jet_cut = pt_cut & eta_cut & jetId_cut & dR_pho_cut & dR_ele_cut & dR_muon_cut & dR_tau_cut
+
+    return jets[jet_cut]
