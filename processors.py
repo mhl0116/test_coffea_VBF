@@ -34,7 +34,7 @@ class VBFHHggtautauProcessor(processor.ProcessorABC):
         item_names_to_be_wrapped = ["selectedPhoton", "tau", "electron", "muon", "jet"]
         photons, taus, electrons, muons, jets = wrap_items(events, item_names_to_be_wrapped)
 
-        from utils import select_tau #, select_electron, select_muon, select_jet
+        from utils import select_tau, select_electron, select_muon #, select_jet
         selectedPhotons = photons
         selectedMuons = select_muon(muons, selectedPhotons)
         selectedElectrons = select_electron(electrons, selectedPhotons)

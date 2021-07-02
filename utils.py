@@ -140,8 +140,24 @@ def select_electron(electrons, selectedPhotons):
 
     eleId_cut = (electrons.mvaId_wp90 == True | ((electrons.mvaId_noIso_wp90 == True) & (electrons.pfRelIso03 < 0.3)))
     dR_pho_cut =  ak.fill_none( electrons.nearest( selectedPhotons, threshold = 0.2 ).pt, -1 ) < 0
-    mZ_cut = electrons 
+    mZ_cut = ak.fill_none( electrons.nearest( selectedPhotons, metric=lambda a,b: abs((a+b).mass-91.2), threshold = 5).pt, -1 ) < 0 
+    #(lambda a,b: (a+b).mass)(photons_mod[:,0], photons_mod[:,1]), use this for metric
 
     electron_cut = pt_cut & eta_cut & dxy_cut & dz_cut & eleId_cut & dR_pho_cut & mZ_cut
 
     return electrons[electron_cut]
+
+def select_muon(muons, selectedPhotons):
+    
+    pt_cut = muons.pt > 5 
+    eta_cut = abs(muons.eta) < 2.4 
+    dxy_cut = abs(muons.dz) < 0.045 
+    dz_cut = abs(muons.dz) < 0.2 
+
+    muonId_cut = muons.pfRelIso03 < 0.3
+    dR_pho_cut =  ak.fill_none( muons.nearest( selectedPhotons, threshold = 0.2 ).pt, -1 ) < 0
+    #(lambda a,b: (a+b).mass)(photons_mod[:,0], photons_mod[:,1]), use this for metric
+
+    muon_cut = pt_cut & eta_cut & dxy_cut & dz_cut & muonId_cut & dR_pho_cut 
+
+    return muons[muon_cut]
