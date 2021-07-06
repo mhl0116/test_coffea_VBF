@@ -1,23 +1,29 @@
-import json
-
 import uproot
 from coffea.nanoevents import NanoEventsFactory, BaseSchema, NanoAODSchema
-uproot.open.defaults["xrootd_handler"] = uproot.source.xrootd.MultithreadedXRootDSource
+#uproot.open.defaults["xrootd_handler"] = uproot.source.xrootd.MultithreadedXRootDSource
+### https://uproot.readthedocs.io/en/latest/uproot.source.xrootd.html
+uproot.open.defaults["xrootd_handler"] = uproot.source.xrootd.XRootDSource
 
 import coffea.processor as processor
 from processors import VBFHHggtautauProcessor
 
-with open('data/samples_and_scale1fb_HHggTauTau.json') as json_file:
-    inputs = json.load(json_file)
+import logging
 
-fnamelist = open("./data/VBF_HH_ggTauTau_2018.txt")
-fnames = fnamelist.read().splitlines()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
-use_xrootd = True
-if use_xrootd:
-    fnames = [fname.replace("/hadoop/cms","root://redirector.t2.ucsd.edu/") for fname in fnames]
+formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(message)s')
 
-fileset = {"VBF_HH_ggTauTau": fnames[:5]}
+file_handler = logging.FileHandler('logs/example.log')
+file_handler.setFormatter(formatter)
+
+logger.addHandler(file_handler)
+
+
+samplelist = ["HH_ggTauTau"] #, "VBF_HH_ggTauTau"]
+import job_utils
+fileset = job_utils.make_fileset(samplelist, use_xrootd=True) 
+logger.debug(f"fileset: {fileset}")
 
 def run(useNanoEvents):
 
@@ -37,19 +43,25 @@ def run(useNanoEvents):
     else:
 
         from dask.distributed import Client
-        client = Client(memory_limit='2GB', n_workers=3, threads_per_worker=1)
+        client = Client(memory_limit='2GB', n_workers=8, threads_per_worker=1)
 
-        #p = MyProcessor()
         out = processor.run_uproot_job(
             fileset,
             treename = 'Events',
             processor_instance = VBFHHggtautauProcessor(),
-            executor=processor.futures_executor,
-            executor_args={"schema": None, "workers": 3}, # our skim only works with None if we want to use selectedPhoton..
-            #executor=processor.dask_executor,
-            #executor_args={"schema": None, "client": client},
+            #executor=processor.futures_executor,
+            #executor_args={"schema": None, "workers": 3, "use_dataframes": True}, # our skim only works with None if we want to use selectedPhoton..
+            executor=processor.dask_executor,
+            executor_args={"schema": None, "client": client, "use_dataframes": True},
             )
-        return out
+
+        logger.debug(f"columns: {out.columns}")
+        logger.debug(f"head of df: {out.head()}")
+
+        import dask.dataframe as dd
+        dd.to_parquet(out, path="./outputs/test2.parquet")
+
+        client.shutdown()
 
 if __name__ == '__main__':
     run(False)

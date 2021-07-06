@@ -14,6 +14,7 @@ def wrap_items(events, item_names):
                 "eta": events["selectedPhoton_eta"],
                 "phi": events["selectedPhoton_phi"],
                 "mass": events["selectedPhoton_mass"],
+                "mvaID": events["selectedPhoton_mvaID"],
                 # photon has charge 0
                 "charge": events["selectedPhoton_mass"] - events["selectedPhoton_mass"],
                 },
