@@ -1,0 +1,2 @@
+/hadoop/cms/store/user/legianni/skimNano-HggHtautauselection/VHToGG_M125_13TeV_amcatnloFXFX_madspin_pythia8_private_mc18/skimNano-HggHtautauselection__v5/210223_115844/0000/tree_1.root
+/hadoop/cms/store/user/legianni/skimNano-HggHtautauselection/VHToGG_M125_13TeV_amcatnloFXFX_madspin_pythia8_private_mc18/skimNano-HggHtautauselection__v5/210223_115844/0000/tree_2.root

@@ -1,0 +1,6 @@
+/hadoop/cms/store/user/legianni/skimNano-HggHtautauselection/GJets_HT-100To200_TuneCUETP8M1_13TeV-madgraphMLM-pythia8_private_mc16/skimNano-HggHtautauselection__v5/210223_101845/0000/tree_1.root
+/hadoop/cms/store/user/legianni/skimNano-HggHtautauselection/GJets_HT-100To200_TuneCUETP8M1_13TeV-madgraphMLM-pythia8_private_mc16/skimNano-HggHtautauselection__v5/210223_101845/0000/tree_2.root
+/hadoop/cms/store/user/legianni/skimNano-HggHtautauselection/GJets_HT-100To200_TuneCUETP8M1_13TeV-madgraphMLM-pythia8_private_mc16/skimNano-HggHtautauselection__v5/210223_101845/0000/tree_3.root
+/hadoop/cms/store/user/legianni/skimNano-HggHtautauselection/GJets_HT-100To200_TuneCUETP8M1_13TeV-madgraphMLM-pythia8_private_mc16_2/skimNano-HggHtautauselection__v5/210223_102000/0000/tree_1.root
+/hadoop/cms/store/user/legianni/skimNano-HggHtautauselection/GJets_HT-100To200_TuneCUETP8M1_13TeV-madgraphMLM-pythia8_private_mc16_2/skimNano-HggHtautauselection__v5/210223_102000/0000/tree_2.root
+/hadoop/cms/store/user/legianni/skimNano-HggHtautauselection/GJets_HT-100To200_TuneCUETP8M1_13TeV-madgraphMLM-pythia8_private_mc16_2/skimNano-HggHtautauselection__v5/210223_102000/0000/tree_3.root
