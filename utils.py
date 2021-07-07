@@ -111,23 +111,24 @@ def select_tau(taus, selectedPhotons, selectedElectrons, selectedMuons):
     
     pt_cut = taus.pt > 18 
     eta_cut = abs(taus.eta) < 2.3 
-    decay_mode_cut = taus.decay_mode == True
+    decay_mode_cut = (taus.decay_mode == True)
     dz_cut = abs(taus.dz) < 0.2 
 
     id_electron_cut = taus.deepTau_vs_e >= 1 # vvloose 
     id_muon_cut = taus.deepTau_vs_m >= 0 # vloose 
-    id_jet_cut = taus.deepTau_vs_j >= 3 # vloose
+    id_jet_cut = taus.deepTau_vs_j >= 7 # vloose
 
     # if dR(tau, pho/ele/mu) < threshold, then taus.nearest(XXX, threshold) is its dR, otherwise None
     # ak.fill_none(, -1) makes the value for taus that will be saved -1 
     # if electron or muon is not present, dR_ele_cut is also -1, then this means the tau being considered will not be filtered, as there is nothing to calculated dR with
-    dR_pho_cut =  ak.fill_none( taus.nearest( selectedPhotons, threshold = 0.2 ).pt, -1 ) < 0
-    dR_ele_cut =  ak.fill_none( taus.nearest( selectedElectrons, threshold = 0.2 ).pt, -1 ) < 0
-    dR_muon_cut =  ak.fill_none( taus.nearest( selectedMuons, threshold = 0.2 ).pt, -1 ) < 0
+    import object_selections
+    #dR_pho_cut =  ak.fill_none( taus.nearest( selectedPhotons, threshold = 0.2 ).pt, -1 ) < 0
+    #dR_ele_cut =  ak.fill_none( taus.nearest( selectedElectrons, threshold = 0.2 ).pt, -1 ) < 0
+    #dR_muon_cut =  ak.fill_none( taus.nearest( selectedMuons, threshold = 0.2 ).pt, -1 ) < 0
 
-    #dR_pho_cut = object_selections.select_deltaR(events, taus, photons, options["taus"]["dR_pho"], debug)
-    #dR_muon_cut = object_selections.select_deltaR(events, taus, muons, options["taus"]["dR_lep"], debug)
-    #dR_ele_cut = object_selections.select_deltaR(events, taus, electrons, options["taus"]["dR_lep"], debug)
+    dR_pho_cut = object_selections.select_deltaR(taus, taus, selectedPhotons, 0.2, False)
+    dR_muon_cut = object_selections.select_deltaR(taus, taus, selectedMuons, 0.2, False)
+    dR_ele_cut = object_selections.select_deltaR(taus, taus, selectedElectrons, 0.2, False)
 
     tau_cut = pt_cut & eta_cut & decay_mode_cut & dz_cut & id_electron_cut & id_muon_cut & id_jet_cut & dR_pho_cut & dR_muon_cut & dR_ele_cut
 
@@ -137,15 +138,17 @@ def select_electron(electrons, selectedPhotons):
     
     pt_cut = electrons.pt > 7 
     eta_cut = abs(electrons.eta) < 2.5 
-    dxy_cut = abs(electrons.dz) < 0.045 
+    dxy_cut = abs(electrons.dxy) < 0.045 
     dz_cut = abs(electrons.dz) < 0.2 
 
     eleId_cut = (electrons.mvaId_wp90 == True | ((electrons.mvaId_noIso_wp90 == True) & (electrons.pfRelIso03 < 0.3)))
-    dR_pho_cut =  ak.fill_none( electrons.nearest( selectedPhotons, threshold = 0.2 ).pt, -1 ) < 0
-    mZ_cut = ak.fill_none( electrons.nearest( selectedPhotons, metric=lambda a,b: abs((a+b).mass-91.2), threshold = 5).pt, -1 ) < 0 
+    #dR_pho_cut =  ak.fill_none( electrons.nearest( selectedPhotons, threshold = 0.2 ).pt, -1 ) < 0
+    import object_selections
+    dR_pho_cut = object_selections.select_deltaR(electrons, electrons, selectedPhotons, 0.2, False)
+    #mZ_cut = ak.fill_none( electrons.nearest( selectedPhotons, metric=lambda a,b: abs((a+b).mass-91.2), threshold = 5).pt, -1 ) < 0 
     #(lambda a,b: (a+b).mass)(photons_mod[:,0], photons_mod[:,1]), use this for metric
 
-    electron_cut = pt_cut & eta_cut & dxy_cut & dz_cut & eleId_cut & dR_pho_cut & mZ_cut
+    electron_cut = pt_cut & eta_cut & dxy_cut & dz_cut & eleId_cut & dR_pho_cut #& mZ_cut
 
     return electrons[electron_cut]
 
@@ -153,11 +156,13 @@ def select_muon(muons, selectedPhotons):
     
     pt_cut = muons.pt > 5 
     eta_cut = abs(muons.eta) < 2.4 
-    dxy_cut = abs(muons.dz) < 0.045 
+    dxy_cut = abs(muons.dxy) < 0.045 
     dz_cut = abs(muons.dz) < 0.2 
 
     muonId_cut = muons.pfRelIso03 < 0.3
-    dR_pho_cut =  ak.fill_none( muons.nearest( selectedPhotons, threshold = 0.2 ).pt, -1 ) < 0
+    #dR_pho_cut =  ak.fill_none( muons.nearest( selectedPhotons, threshold = 0.2 ).pt, -1 ) < 0
+    import object_selections
+    dR_pho_cut = object_selections.select_deltaR(muons, muons, selectedPhotons, 0.2, False)
     #(lambda a,b: (a+b).mass)(photons_mod[:,0], photons_mod[:,1]), use this for metric
 
     muon_cut = pt_cut & eta_cut & dxy_cut & dz_cut & muonId_cut & dR_pho_cut 

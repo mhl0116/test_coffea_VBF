@@ -24,7 +24,7 @@ class VBFHHggtautauProcessor(processor.ProcessorABC):
     https://github.com/CoffeaTeam/coffea/blob/65978ea299eee653f01ccfbc11af9f0339ffc7c2/tests/test_dask_pandas.py
     https://github.com/CoffeaTeam/coffea/blob/bbfd34414530f981529ccecf16e1585d293c5389/coffea/processor/test_items/NanoTestProcessorPandas.py
     '''
-    lumis = {"2016": 35.9, "2017": 41.9, "2018": 59.7}
+    lumis = {"2016": 35.9, "2017": 41.5, "2018": 59.8}
 
     def __init__(self):
         pass
@@ -44,19 +44,27 @@ class VBFHHggtautauProcessor(processor.ProcessorABC):
 
         ### object selection
         from utils import select_tau, select_electron, select_muon, select_jet
-        selectedPhotons = photons
-        selectedMuons = select_muon(muons, selectedPhotons)
-        selectedElectrons = select_electron(electrons, selectedPhotons)
-        selectedTaus = select_tau(taus, selectedPhotons, selectedElectrons, selectedMuons)
-        selectedJets = select_jet(jets, selectedPhotons, selectedMuons, selectedElectrons, selectedTaus) 
-        events["selectedPhoton"] = selectedPhotons
+
+        dipho_presel = photons[:,0] + photons[:,1]
+        photonID_cut = (photons.mvaID[:,0] > -0.7) & (photons.mvaID[:,1] > -0.7)
+        photon_ptom_cut = (photons.pt[:,0]/dipho_presel.mass > 0.33) & (photons.pt[:,1]/dipho_presel.mass > 0.25) 
+        diphoton_mass_cut = (dipho_presel.mass > 100) & (dipho_presel.mass < 180)
+        extra_dipho_cut  = photonID_cut & photon_ptom_cut & diphoton_mass_cut
+
+        selectedMuons = select_muon(muons, photons)
+        selectedElectrons = select_electron(electrons, photons)
+        selectedTaus = select_tau(taus, photons, selectedElectrons, selectedMuons)
+        selectedJets = select_jet(jets, photons, selectedMuons, selectedElectrons, selectedTaus) 
+
+        ### add selected objects back to the event ak array
+        events["selectedPhoton"] = photons
         events["selectedMuon"] = selectedMuons
         events["selectedElectron"] = selectedElectrons
         events["selectedTau"] = selectedTaus
         events["selectedJet"] = selectedJets
 
-        dipho = selectedPhotons[:, 0] + selectedPhotons[:, 1]
-        events["diphoton"] = dipho 
+        #dipho = selectedPhotons[:, 0] + selectedPhotons[:, 1]
+        events["diphoton"] = dipho_presel
 
         ### event selection
         sum_charge = ak.sum(selectedElectrons.charge, axis=1) + ak.sum(selectedMuons.charge, axis=1) + ak.sum(selectedTaus.charge, axis=1)
@@ -69,7 +77,7 @@ class VBFHHggtautauProcessor(processor.ProcessorABC):
         os_cut = (n_leptons_and_taus == 2) & (sum_charge == 0)
         one_tau_zero_lep_cut = (n_taus == 1) & (n_electrons + n_muons == 0)
         # analysis pre-selection
-        all_cuts = os_cut | one_tau_zero_lep_cut
+        all_cuts = (extra_dipho_cut) & (os_cut | one_tau_zero_lep_cut)
 
         #### save relevant info
         output["run"] = ak.to_numpy(events["run"])

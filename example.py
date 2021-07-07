@@ -1,3 +1,4 @@
+
 import uproot
 from coffea.nanoevents import NanoEventsFactory, BaseSchema, NanoAODSchema
 #uproot.open.defaults["xrootd_handler"] = uproot.source.xrootd.MultithreadedXRootDSource
@@ -59,7 +60,7 @@ def run(useNanoEvents):
         logger.debug(f"head of df: {out.head()}")
 
         import dask.dataframe as dd
-        dd.to_parquet(out, path="./outputs/test2.parquet")
+        dd.to_parquet(out, path="./outputs/test2_useNumbaForDr.parquet")
 
         client.shutdown()
 
