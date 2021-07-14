@@ -1,9 +1,10 @@
-def make_fileset(samplelist, use_xrootd):
+def make_fileset(samplelist, yearlist, use_xrootd):
     
     fileset = {}
 
     for sample in samplelist:
         for year in ["2016", "2017", "2018"]:
+            if year not in yearlist: continue
             namelist = f"./data/{sample}_{year}.txt"
             fnamelist = open(namelist)
             fnames = fnamelist.read().splitlines()

@@ -7,6 +7,7 @@ uproot.open.defaults["xrootd_handler"] = uproot.source.xrootd.XRootDSource
 
 import coffea.processor as processor
 from processors import VBFHHggtautauProcessor
+import job_utils
 
 import logging
 
@@ -20,10 +21,11 @@ file_handler.setFormatter(formatter)
 
 logger.addHandler(file_handler)
 
+samplelist = ["HH_ggTauTau", "VBF_HH_ggTauTau", "Data"]
+#samplelist = ["Data"]
+fileset = job_utils.make_fileset(samplelist, ["2016","2017","2018"], use_xrootd=True) 
+outdfname = "test_VBFyields_withdata.parquet" 
 
-samplelist = ["HH_ggTauTau"] #, "VBF_HH_ggTauTau"]
-import job_utils
-fileset = job_utils.make_fileset(samplelist, use_xrootd=True) 
 logger.debug(f"fileset: {fileset}")
 
 def run(useNanoEvents):
@@ -60,7 +62,9 @@ def run(useNanoEvents):
         logger.debug(f"head of df: {out.head()}")
 
         import dask.dataframe as dd
-        dd.to_parquet(out, path="./outputs/test2_useNumbaForDr.parquet")
+        #dd.to_parquet(out, path="./outputs/test2_useNumbaForDr.parquet")
+        #dd.to_parquet(out, path="./outputs/test2.parquet")
+        dd.to_parquet(out, path="./outputs/" + outdfname)
 
         client.shutdown()
 

@@ -43,28 +43,27 @@ class VBFHHggtautauProcessor(processor.ProcessorABC):
         photons, taus, electrons, muons, jets = wrap_items(events, item_names_to_be_wrapped)
 
         ### object selection
-        from utils import select_tau, select_electron, select_muon, select_jet
+        from utils import select_tau, select_electron, select_muon, select_jet, select_vbf_jet
 
         dipho_presel = photons[:,0] + photons[:,1]
         photonID_cut = (photons.mvaID[:,0] > -0.7) & (photons.mvaID[:,1] > -0.7)
         photon_ptom_cut = (photons.pt[:,0]/dipho_presel.mass > 0.33) & (photons.pt[:,1]/dipho_presel.mass > 0.25) 
         diphoton_mass_cut = (dipho_presel.mass > 100) & (dipho_presel.mass < 180)
         extra_dipho_cut  = photonID_cut & photon_ptom_cut & diphoton_mass_cut
+        events["selectedPhoton"] = photons
+        events["diphoton"] = dipho_presel
 
         selectedMuons = select_muon(muons, photons)
         selectedElectrons = select_electron(electrons, photons)
         selectedTaus = select_tau(taus, photons, selectedElectrons, selectedMuons)
         selectedJets = select_jet(jets, photons, selectedMuons, selectedElectrons, selectedTaus) 
-
+        selectedVBFJets = select_vbf_jet(jets, photons, selectedMuons, selectedElectrons, selectedTaus) 
         ### add selected objects back to the event ak array
-        events["selectedPhoton"] = photons
         events["selectedMuon"] = selectedMuons
         events["selectedElectron"] = selectedElectrons
         events["selectedTau"] = selectedTaus
         events["selectedJet"] = selectedJets
-
-        #dipho = selectedPhotons[:, 0] + selectedPhotons[:, 1]
-        events["diphoton"] = dipho_presel
+        events["selectedVBFJet"] = selectedVBFJets
 
         ### event selection
         sum_charge = ak.sum(selectedElectrons.charge, axis=1) + ak.sum(selectedMuons.charge, axis=1) + ak.sum(selectedTaus.charge, axis=1)
@@ -79,6 +78,7 @@ class VBFHHggtautauProcessor(processor.ProcessorABC):
         # analysis pre-selection
         all_cuts = (extra_dipho_cut) & (os_cut | one_tau_zero_lep_cut)
 
+        n_vbf_jets = ak.num(selectedVBFJets)
         #### save relevant info
         output["run"] = ak.to_numpy(events["run"])
         output["event"] = ak.to_numpy(events["event"])
@@ -111,6 +111,15 @@ class VBFHHggtautauProcessor(processor.ProcessorABC):
             output["weight"] = events["genWeight"]*scale1fb*self.lumis[year]
             logger.debug(f'event weight for {samplename} in year {year} is {events["genWeight"][0]*scale1fb*self.lumis[year]}')
 
+        output["vbfjets_eta1_times_eta2"] = -999.0
+        output["vbfjets_abs_eta_diff"] = -999.0
+        output["vbfjets_mjj"] = -999.0
+        two_selectedVBFJets = selectedVBFJets[n_vbf_jets >= 2]
+        output.loc[ak.to_numpy(n_vbf_jets >= 2), "vbfjets_eta1_times_eta2"] = ak.to_numpy(two_selectedVBFJets[:, 0].eta * two_selectedVBFJets[:, 1].eta)
+        output.loc[ak.to_numpy(n_vbf_jets >= 2), "vbfjets_abs_eta_diff"] = ak.to_numpy(abs( two_selectedVBFJets[:, 0].eta - two_selectedVBFJets[:, 1].eta) )
+        output.loc[ak.to_numpy(n_vbf_jets >= 2), "vbfjets_mjj"] = ak.to_numpy( (two_selectedVBFJets[:, 0] + two_selectedVBFJets[:, 1]).mass )
+
+        #return output
         #logger.debug(f"output: {output.head()}")
         #logger.debug(f"mask: {all_cuts}, type of mask: {type(all_cuts)}")
         return output[ak.to_numpy(all_cuts)]

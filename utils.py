@@ -95,12 +95,49 @@ def wrap_items(events, item_names):
                 "neHEF": events["Jet_neHEF"],
                 "chHEF": events["Jet_chHEF"],
                 "chEmEF": events["Jet_chEmEF"],
+                "jetId": events["Jet_jetId"],
+                "puId": events["Jet_puId"],
                 "nConstituents": events["Jet_nConstituents"],
                 "btagDeepFlavB": events["Jet_btagDeepFlavB"],
                 "btagDeepFlavC": events["Jet_btagDeepFlavC"],
                 },
                 with_name="PtEtaPhiMCandidate",
                 behavior=candidate.behavior,
+            )
+        )
+
+    if "genVisTau" in item_names:
+        wrapped_items.append(
+            ak.zip(
+                {
+                "pt": events["GenVisTau_pt"],
+                "eta": events["GenVisTau_eta"],
+                "phi": events["GenVisTau_phi"],
+                "mass": events["GenVisTau_mass"],
+                "charge": events["GenVisTau_charge"],
+                "genPartIdxMother": events["GenVisTau_genPartIdxMother"],
+                "status": events["GenVisTau_status"],
+                },
+                with_name="PtEtaPhiMCandidate",
+                #behavior=candidate.behavior,
+            )
+        )
+
+    if "genPart" in item_names:
+        wrapped_items.append(
+            ak.zip(
+                {
+                "pt": events["GenPart_pt"],
+                "eta": events["GenPart_eta"],
+                "phi": events["GenPart_phi"],
+                "mass": events["GenPart_mass"],
+                "status": events["GenPart_status"],
+                "pdgId": events["GenPart_pdgId"],
+                "statusFlags": events["GenPart_statusFlags"],
+                "genPartIdxMother": events["GenPart_genPartIdxMother"],
+                },
+                with_name="PtEtaPhiMCandidate",
+                #behavior=candidate.behavior,
             )
         )
 
@@ -121,14 +158,15 @@ def select_tau(taus, selectedPhotons, selectedElectrons, selectedMuons):
     # if dR(tau, pho/ele/mu) < threshold, then taus.nearest(XXX, threshold) is its dR, otherwise None
     # ak.fill_none(, -1) makes the value for taus that will be saved -1 
     # if electron or muon is not present, dR_ele_cut is also -1, then this means the tau being considered will not be filtered, as there is nothing to calculated dR with
-    import object_selections
-    #dR_pho_cut =  ak.fill_none( taus.nearest( selectedPhotons, threshold = 0.2 ).pt, -1 ) < 0
-    #dR_ele_cut =  ak.fill_none( taus.nearest( selectedElectrons, threshold = 0.2 ).pt, -1 ) < 0
-    #dR_muon_cut =  ak.fill_none( taus.nearest( selectedMuons, threshold = 0.2 ).pt, -1 ) < 0
 
-    dR_pho_cut = object_selections.select_deltaR(taus, taus, selectedPhotons, 0.2, False)
-    dR_muon_cut = object_selections.select_deltaR(taus, taus, selectedMuons, 0.2, False)
-    dR_ele_cut = object_selections.select_deltaR(taus, taus, selectedElectrons, 0.2, False)
+    dR_pho_cut =  ak.fill_none( taus.nearest( selectedPhotons, threshold = 0.2 ).pt, -1 ) < 0
+    dR_ele_cut =  ak.fill_none( taus.nearest( selectedElectrons, threshold = 0.2 ).pt, -1 ) < 0
+    dR_muon_cut =  ak.fill_none( taus.nearest( selectedMuons, threshold = 0.2 ).pt, -1 ) < 0
+
+    #import object_selections
+    #dR_pho_cut = object_selections.select_deltaR(taus, taus, selectedPhotons, 0.2, False)
+    #dR_muon_cut = object_selections.select_deltaR(taus, taus, selectedMuons, 0.2, False)
+    #dR_ele_cut = object_selections.select_deltaR(taus, taus, selectedElectrons, 0.2, False)
 
     tau_cut = pt_cut & eta_cut & decay_mode_cut & dz_cut & id_electron_cut & id_muon_cut & id_jet_cut & dR_pho_cut & dR_muon_cut & dR_ele_cut
 
@@ -142,9 +180,9 @@ def select_electron(electrons, selectedPhotons):
     dz_cut = abs(electrons.dz) < 0.2 
 
     eleId_cut = (electrons.mvaId_wp90 == True | ((electrons.mvaId_noIso_wp90 == True) & (electrons.pfRelIso03 < 0.3)))
-    #dR_pho_cut =  ak.fill_none( electrons.nearest( selectedPhotons, threshold = 0.2 ).pt, -1 ) < 0
-    import object_selections
-    dR_pho_cut = object_selections.select_deltaR(electrons, electrons, selectedPhotons, 0.2, False)
+    dR_pho_cut =  ak.fill_none( electrons.nearest( selectedPhotons, threshold = 0.2 ).pt, -1 ) < 0
+    #import object_selections
+    #dR_pho_cut = object_selections.select_deltaR(electrons, electrons, selectedPhotons, 0.2, False)
     #mZ_cut = ak.fill_none( electrons.nearest( selectedPhotons, metric=lambda a,b: abs((a+b).mass-91.2), threshold = 5).pt, -1 ) < 0 
     #(lambda a,b: (a+b).mass)(photons_mod[:,0], photons_mod[:,1]), use this for metric
 
@@ -160,9 +198,10 @@ def select_muon(muons, selectedPhotons):
     dz_cut = abs(muons.dz) < 0.2 
 
     muonId_cut = muons.pfRelIso03 < 0.3
-    #dR_pho_cut =  ak.fill_none( muons.nearest( selectedPhotons, threshold = 0.2 ).pt, -1 ) < 0
-    import object_selections
-    dR_pho_cut = object_selections.select_deltaR(muons, muons, selectedPhotons, 0.2, False)
+    dR_pho_cut =  ak.fill_none( muons.nearest( selectedPhotons, threshold = 0.2 ).pt, -1 ) < 0
+
+    #import object_selections
+    #dR_pho_cut = object_selections.select_deltaR(muons, muons, selectedPhotons, 0.2, False)
     #(lambda a,b: (a+b).mass)(photons_mod[:,0], photons_mod[:,1]), use this for metric
 
     muon_cut = pt_cut & eta_cut & dxy_cut & dz_cut & muonId_cut & dR_pho_cut 
@@ -193,3 +232,36 @@ def select_jet(jets, selectedPhotons, selectedMuons, selectedElectrons, selected
     jet_cut = pt_cut & eta_cut & jetId_cut & dR_pho_cut & dR_ele_cut & dR_muon_cut & dR_tau_cut
 
     return jets[jet_cut]
+
+def select_vbf_jet(jets, selectedPhotons, selectedMuons, selectedElectrons, selectedTaus):
+    
+    pt_cut = jets.pt > 25 
+    eta_cut = abs(jets.eta) < 4.7 
+
+    dR_pho_cut =  ak.fill_none( jets.nearest( selectedPhotons, threshold = 0.4 ).pt, -1 ) < 0
+    dR_ele_cut =  ak.fill_none( jets.nearest( selectedElectrons, threshold = 0.4 ).pt, -1 ) < 0
+    dR_muon_cut =  ak.fill_none( jets.nearest( selectedMuons, threshold = 0.4 ).pt, -1 ) < 0
+    dR_tau_cut =  ak.fill_none( jets.nearest( selectedTaus, threshold = 0.4 ).pt, -1 ) < 0
+    #(lambda a,b: (a+b).mass)(photons_mod[:,0], photons_mod[:,1]), use this for metric
+
+    # https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetID#nanoAOD_Flags 
+    # https://twiki.cern.ch/twiki/bin/viewauth/CMS/PileupJetID
+    jetId_cut = (jets.jetId >= 2) & ((jets.pt < 50) & (jets.puId >= 6))
+
+    jet_cut = pt_cut & eta_cut & jetId_cut & dR_pho_cut & dR_ele_cut & dR_muon_cut & dR_tau_cut
+
+    return jets[jet_cut]
+
+def select_genVisTau(genVisTaus, selectedPhotons, selectedTaus):
+    
+    #eta_cut = abs(genVisTaus.eta) < 4.7 
+
+    #dR_pho_cut =  ak.fill_none( genVisTaus.nearest( selectedPhotons, threshold = 0.4 ).pt, -1 ) < 0
+    #dR_ele_cut =  ak.fill_none( genVisTaus.nearest( selectedElectrons, threshold = 0.4 ).pt, -1 ) < 0
+    #dR_muon_cut =  ak.fill_none( genVisTaus.nearest( selectedMuons, threshold = 0.4 ).pt, -1 ) < 0
+    dR_tau_cut =  ak.fill_none( genVisTaus.nearest( selectedTaus, threshold = 0.2 ).pt, -1 ) < 0
+    #(lambda a,b: (a+b).mass)(photons_mod[:,0], photons_mod[:,1]), use this for metric
+
+    genVisTau_cut = pt_cut & eta_cut & jetId_cut & dR_pho_cut & dR_ele_cut & dR_muon_cut & dR_tau_cut
+
+    return genVisTaus[genVisTau_cut]
