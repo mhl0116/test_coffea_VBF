@@ -2,6 +2,8 @@ import awkward as ak
 from coffea import hist, processor
 import pandas as pd
 import json
+from dask.distributed import get_worker
+from subprocess import call
 
 # register our candidate behaviors
 from coffea.nanoevents.methods import candidate
@@ -14,7 +16,9 @@ logger.setLevel(logging.DEBUG)
 
 formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(message)s')
 
-file_handler = logging.FileHandler('logs/processor.log')
+call("mkdir -p logs", shell=True)
+#file_handler = logging.FileHandler('logs/processor.log')
+file_handler = logging.FileHandler('processor.log')
 file_handler.setFormatter(formatter)
 
 logger.addHandler(file_handler)
@@ -26,8 +30,9 @@ class VBFHHggtautauProcessor(processor.ProcessorABC):
     '''
     lumis = {"2016": 35.9, "2017": 41.5, "2018": 59.8}
 
-    def __init__(self):
-        pass
+    def __init__(self, output_path, job_tag):
+        self.output_path = output_path
+        self.job_tag = job_tag
 
     @property
     def accumulator(self):
@@ -101,8 +106,15 @@ class VBFHHggtautauProcessor(processor.ProcessorABC):
         scale1fb = 1
         output["weight"] = 1
         if "Data" not in dataset:
-            with open('data/samples_and_scale1fb_HHggTauTau.json') as json_file:
+
+            scale1fbfile = 'data/samples_and_scale1fb_HHggTauTau.json'
+            import os.path
+            if not os.path.isfile(scale1fbfile):
+                scale1fbfile = scale1fbfile.replace("data", "/hadoop/cms/store/user/hmei/workflowtest/test_coffea_VBF")
+
+            with open(scale1fbfile) as json_file:
                 inputs = json.load(json_file)
+    
             samplename = "_".join(dataset.split("_")[:-1])
             year = dataset.split("_")[-1]
             scale1fb = inputs[samplename][year]["metadata"]["scale1fb"]
@@ -119,10 +131,26 @@ class VBFHHggtautauProcessor(processor.ProcessorABC):
         output.loc[ak.to_numpy(n_vbf_jets >= 2), "vbfjets_abs_eta_diff"] = ak.to_numpy(abs( two_selectedVBFJets[:, 0].eta - two_selectedVBFJets[:, 1].eta) )
         output.loc[ak.to_numpy(n_vbf_jets >= 2), "vbfjets_mjj"] = ak.to_numpy( (two_selectedVBFJets[:, 0] + two_selectedVBFJets[:, 1]).mass )
 
-        #return output
+        import time
+        import random
+        #for key, task in get_worker().tasks.items():
+        #    #if task.state == "executing":
+        #        job_id = f"{key[-32:]}_{time.time()}_{random.random()}_{dataset}"
+
+        worker = get_worker()
+        #job_id = f"{worker.worker_address.strip(':')[-2]}_{time.time()}_{random.random()}_{dataset}"
+        job_id = f"{output['diphoton_mass'][0]}_{time.time()}_{random.random()}_{dataset}"
+
+        localoutputname = f"out-{self.job_tag}-{job_id}.parquet"
+        output[ak.to_numpy(all_cuts)].to_parquet(f"./{localoutputname}")
+
+        cmd_gfal_copy = f"env -i X509_USER_PROXY=${{X509_USER_PROXY}} gfal-copy -p -f -t 4200 --verbose file://`pwd`/{localoutputname} gsiftp://gftp.t2.ucsd.edu/{self.output_path}/{localoutputname} --checksum ADLER32"
+        call(cmd_gfal_copy, shell=True)
         #logger.debug(f"output: {output.head()}")
         #logger.debug(f"mask: {all_cuts}, type of mask: {type(all_cuts)}")
-        return output[ak.to_numpy(all_cuts)]
-
+        #return output[ak.to_numpy(all_cuts)]
+        return 0
+    
     def postprocess(self, accumulator):
-        return accumulator
+        return super().postprocess(accumulator)
+        #return accumulator

@@ -1,4 +1,3 @@
-
 import uproot
 from coffea.nanoevents import NanoEventsFactory, BaseSchema, NanoAODSchema
 #uproot.open.defaults["xrootd_handler"] = uproot.source.xrootd.MultithreadedXRootDSource
@@ -24,7 +23,17 @@ logger.addHandler(file_handler)
 samplelist = ["HH_ggTauTau", "VBF_HH_ggTauTau", "Data"]
 #samplelist = ["Data"]
 fileset = job_utils.make_fileset(samplelist, ["2016","2017","2018"], use_xrootd=True) 
-outdfname = "test_VBFyields_withdata.parquet" 
+#outdfname = "test_VBFyields_withdata.parquet" 
+outpath = "/hadoop/cms/store/user/hmei/workflowtest/dask_coffea"
+jobtag = "test"
+
+from dask.distributed import Client
+#client = Client(memory_limit='2GB', n_workers=5, threads_per_worker=1)
+client = Client("tcp://169.228.130.37:12318")
+
+localfiles = ["./processors.py", "./utils.py", "./data/samples_and_scale1fb_HHggTauTau.json"]
+for localfile in localfiles:
+    client.upload_file(localfile)
 
 logger.debug(f"fileset: {fileset}")
 
@@ -45,28 +54,26 @@ def run(useNanoEvents):
 
     else:
 
-        from dask.distributed import Client
-        client = Client(memory_limit='2GB', n_workers=8, threads_per_worker=1)
 
         out = processor.run_uproot_job(
             fileset,
             treename = 'Events',
-            processor_instance = VBFHHggtautauProcessor(),
+            processor_instance = VBFHHggtautauProcessor(outpath, jobtag),
             #executor=processor.futures_executor,
             #executor_args={"schema": None, "workers": 3, "use_dataframes": True}, # our skim only works with None if we want to use selectedPhoton..
             executor=processor.dask_executor,
             executor_args={"schema": None, "client": client, "use_dataframes": True},
             )
 
-        logger.debug(f"columns: {out.columns}")
-        logger.debug(f"head of df: {out.head()}")
+        #logger.debug(f"columns: {out.columns}")
+        #logger.debug(f"head of df: {out.head()}")
 
-        import dask.dataframe as dd
+        #import dask.dataframe as dd
         #dd.to_parquet(out, path="./outputs/test2_useNumbaForDr.parquet")
         #dd.to_parquet(out, path="./outputs/test2.parquet")
-        dd.to_parquet(out, path="./outputs/" + outdfname)
+        #dd.to_parquet(out, path="./outputs/" + outdfname)
 
-        client.shutdown()
+        #client.shutdown()
 
 if __name__ == '__main__':
     run(False)
