@@ -4,6 +4,18 @@ import numpy as np
 from coffea.nanoevents.methods import candidate
 ak.behavior.update(candidate.behavior)
 
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(message)s')
+
+file_handler = logging.FileHandler('logs/utils.log')
+file_handler.setFormatter(formatter)
+
+logger.addHandler(file_handler)
+
 def wrap_items(events, item_names):
 
     wrapped_items = []
@@ -287,31 +299,32 @@ def getcosthetastar_cs(diphoton, ditau_svfit):
     # https://github.com/cms-analysis/flashgg/blob/1453740b1e4adc7184d5d8aa8a981bdb6b2e5f8e/DataFormats/src/DoubleHTag.cc#L41
     beam_energy = 6500
     nevts = len(diphoton)
-    #costhetastar_cs = np.ones(nevts)*-999
+    costhetastar_cs = np.ones(nevts)*-999
 
     p1 = ak.zip(
                 {
-                "pt": np.zeros(nevts),
-                "eta": np.ones(nevts)*100000000000.0,
-                "phi": np.zeros(nevts),
-                "mass": np.ones(nevts)*beam_energy,
-                "charge": np.zeros(nevts),
+                "x": np.zeros(nevts),
+                #"py": np.ones(nevts)*100.0,
+                "y": np.zeros(nevts),
+                "z": np.ones(nevts)*beam_energy,
+                "t": np.ones(nevts)*beam_energy,
                 },
-                with_name="PtEtaPhiMCandidate",
+                with_name="LorentzVector",
         )
 
     p2 = ak.zip(
                 {
-                "pt": np.zeros(nevts),
-                "eta": np.ones(nevts)*-100000000000.0,
-                "phi": np.zeros(nevts),
-                "mass": np.ones(nevts)*beam_energy,
-                "charge": np.zeros(nevts),
+                "x": np.zeros(nevts),
+                #"py": np.ones(nevts)*100.0,
+                "y": np.zeros(nevts),
+                "z": np.ones(nevts)*beam_energy*(-1),
+                "t": np.ones(nevts)*beam_energy,
                 },
-                with_name="PtEtaPhiMCandidate",
+                with_name="LorentzVector",
         )
 
-    hh = diphoton + ditau
+    ## check nan
+    hh = diphoton + ditau_svfit
     boostvec = hh.boostvec * -1
 
     p1_boost = p1.boost(boostvec)
@@ -319,5 +332,10 @@ def getcosthetastar_cs(diphoton, ditau_svfit):
 
     CSaxis = (p1_boost.pvec.unit - p2_boost.pvec.unit).unit
     diphoton_vec_unit = diphoton.pvec.unit
+
+    logger.debug(f"{p1_boost[0].to_list()}")
+    logger.debug(f"{p1_boost.pvec[0]}")
+    logger.debug(f"{diphoton[0].to_list()}")
+    logger.debug(f"{diphoton.pvec[0]}")
 
     return CSaxis.dot(diphoton_vec_unit)

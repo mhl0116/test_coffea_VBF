@@ -12,7 +12,7 @@ ak.behavior.update(candidate.behavior)
 import logging
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(message)s')
 
@@ -43,6 +43,8 @@ class VBFHHggtautauProcessor(processor.ProcessorABC):
         output = pd.DataFrame() 
         dataset = events.metadata['dataset'] # identifier of data/MC 
         
+        logger.info(f"start to process events")
+
         from utils import wrap_items
         item_names_to_be_wrapped = ["selectedPhoton", "tau", "electron", "muon", "jet", "tautauSVFitLoose"]
         photons, taus, electrons, muons, jets, ditau_svfit = wrap_items(events, item_names_to_be_wrapped)
@@ -103,7 +105,9 @@ class VBFHHggtautauProcessor(processor.ProcessorABC):
         output["nElectrons"] = n_electrons
         output["nMuons"] = n_muons
 
-        output["costhetastar_cs"] = utils.getcosthetastar_cs(diphoton, ditau_svfit) 
+        from utils import getcosthetastar_cs
+        output["costhetastar_cs"] = getcosthetastar_cs(dipho_presel, ditau_svfit) 
+        output["svfit_mass"] = ditau_svfit.mass
         
         scale1fb = 1
         output["weight"] = 1
@@ -141,7 +145,7 @@ class VBFHHggtautauProcessor(processor.ProcessorABC):
         import random
         for key, task in get_worker().tasks.items():
             if task.state == "executing":
-                job_id = f"{key[-32:]}_{time.time()}_{random.random()}_{dataset}"
+                job_id = f"{key[-32:]}_{time.time()}_{dataset}"
 
         #worker = get_worker()
         #job_id = f"{worker.worker_address.strip(':')[-2]}_{time.time()}_{random.random()}_{dataset}"
