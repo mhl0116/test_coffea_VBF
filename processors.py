@@ -44,8 +44,8 @@ class VBFHHggtautauProcessor(processor.ProcessorABC):
         dataset = events.metadata['dataset'] # identifier of data/MC 
         
         from utils import wrap_items
-        item_names_to_be_wrapped = ["selectedPhoton", "tau", "electron", "muon", "jet"]
-        photons, taus, electrons, muons, jets = wrap_items(events, item_names_to_be_wrapped)
+        item_names_to_be_wrapped = ["selectedPhoton", "tau", "electron", "muon", "jet", "tautauSVFitLoose"]
+        photons, taus, electrons, muons, jets, ditau_svfit = wrap_items(events, item_names_to_be_wrapped)
 
         ### object selection
         from utils import select_tau, select_electron, select_muon, select_jet, select_vbf_jet
@@ -84,10 +84,10 @@ class VBFHHggtautauProcessor(processor.ProcessorABC):
         all_cuts = (extra_dipho_cut) & (os_cut | one_tau_zero_lep_cut)
 
         n_vbf_jets = ak.num(selectedVBFJets)
+
         #### save relevant info
         output["run"] = ak.to_numpy(events["run"])
         output["event"] = ak.to_numpy(events["event"])
-        output["dataset"] = events.metadata["dataset"]
 
         output["diphoton_mass"] = events["diphoton"].mass
         output["diphoton_ptom"] = events["diphoton"].pt/events["diphoton"].mass
@@ -102,6 +102,8 @@ class VBFHHggtautauProcessor(processor.ProcessorABC):
         output["nHadTaus"] = n_taus
         output["nElectrons"] = n_electrons
         output["nMuons"] = n_muons
+
+        output["costhetastar_cs"] = utils.getcosthetastar_cs(diphoton, ditau_svfit) 
         
         scale1fb = 1
         output["weight"] = 1
@@ -123,6 +125,10 @@ class VBFHHggtautauProcessor(processor.ProcessorABC):
             output["weight"] = events["genWeight"]*scale1fb*self.lumis[year]
             logger.debug(f'event weight for {samplename} in year {year} is {events["genWeight"][0]*scale1fb*self.lumis[year]}')
 
+        if "GJets" in dataset:
+            events.metadata["dataset"] = events.metadata["dataset"].split("_")[0]
+        output["dataset"] = events.metadata["dataset"]
+
         output["vbfjets_eta1_times_eta2"] = -999.0
         output["vbfjets_abs_eta_diff"] = -999.0
         output["vbfjets_mjj"] = -999.0
@@ -133,19 +139,21 @@ class VBFHHggtautauProcessor(processor.ProcessorABC):
 
         import time
         import random
-        #for key, task in get_worker().tasks.items():
-        #    #if task.state == "executing":
-        #        job_id = f"{key[-32:]}_{time.time()}_{random.random()}_{dataset}"
+        for key, task in get_worker().tasks.items():
+            if task.state == "executing":
+                job_id = f"{key[-32:]}_{time.time()}_{random.random()}_{dataset}"
 
-        worker = get_worker()
+        #worker = get_worker()
         #job_id = f"{worker.worker_address.strip(':')[-2]}_{time.time()}_{random.random()}_{dataset}"
-        job_id = f"{output['diphoton_mass'][0]}_{time.time()}_{random.random()}_{dataset}"
+        #job_id = f"{output['diphoton_mass'][0]}_{time.time()}_{random.random()}_{dataset}"
 
         localoutputname = f"out-{self.job_tag}-{job_id}.parquet"
-        output[ak.to_numpy(all_cuts)].to_parquet(f"./{localoutputname}")
+        #output[ak.to_numpy(all_cuts)].to_parquet(f"./{localoutputname}")
+        output[ak.to_numpy(all_cuts)].to_parquet(f"{self.output_path}/{localoutputname}")
 
-        cmd_gfal_copy = f"env -i X509_USER_PROXY=${{X509_USER_PROXY}} gfal-copy -p -f -t 4200 --verbose file://`pwd`/{localoutputname} gsiftp://gftp.t2.ucsd.edu/{self.output_path}/{localoutputname} --checksum ADLER32"
-        call(cmd_gfal_copy, shell=True)
+        #cmd_gfal_copy = f"env -i X509_USER_PROXY=${{X509_USER_PROXY}} gfal-copy -p -f -t 4200 --verbose file://`pwd`/{localoutputname} gsiftp://gftp.t2.ucsd.edu/{self.output_path}/{localoutputname} --checksum ADLER32"
+        #call(cmd_gfal_copy, shell=True)
+
         #logger.debug(f"output: {output.head()}")
         #logger.debug(f"mask: {all_cuts}, type of mask: {type(all_cuts)}")
         #return output[ak.to_numpy(all_cuts)]

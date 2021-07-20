@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import os
 import tempfile
 import argparse
@@ -97,6 +96,52 @@ def make_sure_exists(path, make=False):
         else:
             os.system("mkdir -p {}".format(path))
 
+def make_htcondor_cluster_lxplus(
+        disk = "4GB",
+        memory = "4GB",
+        cores = 1,
+        local=False,
+        n_port=8786,
+        dashboard_address=8787,
+        ):
+
+    log_directory = os.path.join(BASEDIR, "logs/")
+    # at lxplux the proxy file is stored at home
+    proxy_file = f"{os.path.expanduser('~')}/x509up_u{os.getuid()}"
+
+    import socket
+
+    scheduler_options: {
+        "dashboard_address": dashboard_address,
+        'port': n_port,
+        'host': socket.gethostname()
+        }
+
+    job_extra = {
+        'log': 'dask_job_output.log',
+        'output': 'dask_job_output.out',
+        'error': 'dask_job_output.err',
+        "should_transfer_files": "YES",
+        "when_to_transfer_output": "ON_EXIT_OR_EVICT",
+        "transfer_output_files": "",
+        "Transfer_Executable": "True",
+        #"transfer_input_files": ",".join(input_files),
+        "JobBatchName": '"daskworker"',
+        "x509userproxy": proxy_file,
+        "Stream_Output": False,
+        "Stream_Error": False,
+        '+JobFlavour': '"espresso"',
+        #"+DESIRED_Sites":'"T2_US_UCSD"',
+        }
+
+    #extra = ["--preload", "cachepreload.py"]
+    extra = ['--worker-port 10000:10100']
+
+    cluster = HTCondorCluster(cores=cores, memory=memory, disk=disk, nanny=False, scheduler_options = {"dashboard_address":dashboard_address}, job_extra=job_extra, extra=extra)
+
+    print(cluster.job_script())
+
+    return cluster
 
 def make_htcondor_cluster(
         disk = "8GB",

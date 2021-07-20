@@ -20,24 +20,24 @@ file_handler.setFormatter(formatter)
 
 logger.addHandler(file_handler)
 
-samplelist = ["HH_ggTauTau", "VBF_HH_ggTauTau", "Data"]
-#samplelist = ["Data"]
-fileset = job_utils.make_fileset(samplelist, ["2016","2017","2018"], use_xrootd=True) 
-#outdfname = "test_VBFyields_withdata.parquet" 
-outpath = "/hadoop/cms/store/user/hmei/workflowtest/dask_coffea"
-jobtag = "test"
+##samplelist = ["HH_ggTauTau", "VBF_HH_ggTauTau", "Data"]
+#samplelist = ["HH_ggTauTau"]
+#fileset = job_utils.make_fileset(samplelist, ["2016","2017","2018"], use_xrootd=True) 
+##outdfname = "test_VBFyields_withdata.parquet" 
+#outpath = "/hadoop/cms/store/user/hmei/workflowtest/dask_coffea"
+#jobtag = "test_heliticy"
+#
+#from dask.distributed import Client
+#client = Client(memory_limit='2GB', n_workers=10, threads_per_worker=1)
+##client = Client("tcp://137.138.125.24:37504")
+#
+#localfiles = ["./processors.py", "./utils.py", "./data/samples_and_scale1fb_HHggTauTau.json"]
+#for localfile in localfiles:
+#    client.upload_file(localfile)
+#
+#logger.debug(f"fileset: {fileset}")
 
-from dask.distributed import Client
-#client = Client(memory_limit='2GB', n_workers=5, threads_per_worker=1)
-client = Client("tcp://169.228.130.37:12318")
-
-localfiles = ["./processors.py", "./utils.py", "./data/samples_and_scale1fb_HHggTauTau.json"]
-for localfile in localfiles:
-    client.upload_file(localfile)
-
-logger.debug(f"fileset: {fileset}")
-
-def run(useNanoEvents):
+def run(fileset, outpath, jobtag, client, useNanoEvents):
 
     if useNanoEvents == True:
 
@@ -59,10 +59,10 @@ def run(useNanoEvents):
             fileset,
             treename = 'Events',
             processor_instance = VBFHHggtautauProcessor(outpath, jobtag),
-            #executor=processor.futures_executor,
-            #executor_args={"schema": None, "workers": 3, "use_dataframes": True}, # our skim only works with None if we want to use selectedPhoton..
-            executor=processor.dask_executor,
-            executor_args={"schema": None, "client": client, "use_dataframes": True},
+            executor=processor.futures_executor,
+            executor_args={"schema": None, "workers": 10}, # our skim only works with None if we want to use selectedPhoton..
+            #executor=processor.dask_executor,
+            #executor_args={"schema": None, "client": client, "use_dataframes": True},
             )
 
         #logger.debug(f"columns: {out.columns}")
@@ -76,4 +76,26 @@ def run(useNanoEvents):
         #client.shutdown()
 
 if __name__ == '__main__':
-    run(False)
+
+    #samplelist = ["HH_ggTauTau", "VBF_HH_ggTauTau", "Data"]
+    samplelist = ["HH_ggTauTau"]
+    fileset = job_utils.make_fileset(samplelist, ["2016","2017","2018"], use_xrootd=True) 
+
+    #outdfname = "test_VBFyields_withdata.parquet" 
+    outpath = "/hadoop/cms/store/user/hmei/workflowtest/dask_coffea"
+    jobtag = "test_heliticy"
+
+    from dask.distributed import Client
+    client = Client(memory_limit='2GB', n_workers=10, threads_per_worker=1)
+    #client = Client("tcp://127.0.0.1:30055")
+
+    localfiles = ["./processors.py", "./utils.py", "./data/samples_and_scale1fb_HHggTauTau.json"]
+
+    for localfile in localfiles:
+        client.upload_file(localfile)
+
+    logger.debug(f"fileset: {fileset}")
+
+    run(fileset=fileset, outpath=outpath, jobtag=jobtag, client=client, useNanoEvents=False)
+
+    #client.close()

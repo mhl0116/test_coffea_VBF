@@ -1,4 +1,5 @@
 import awkward as ak
+import numpy as np
 # register our candidate behaviors
 from coffea.nanoevents.methods import candidate
 ak.behavior.update(candidate.behavior)
@@ -141,6 +142,21 @@ def wrap_items(events, item_names):
             )
         )
 
+    if "tautauSVFitLoose" in item_names:
+        wrapped_items.append(
+            ak.zip(
+                {
+                "pt": events["pt_tautauSVFitLoose"],
+                "eta": events["eta_tautauSVFitLoose"],
+                "phi": events["phi_tautauSVFitLoose"],
+                "mass": events["m_tautauSVFitLoose"],
+                "charge": events["m_tautauSVFitLoose"] - events["m_tautauSVFitLoose"],
+                },
+                with_name="PtEtaPhiMCandidate",
+                #behavior=candidate.behavior,
+            )
+        )
+
     return wrapped_items
 
 
@@ -265,3 +281,43 @@ def select_genVisTau(genVisTaus, selectedPhotons, selectedTaus):
     genVisTau_cut = pt_cut & eta_cut & jetId_cut & dR_pho_cut & dR_ele_cut & dR_muon_cut & dR_tau_cut
 
     return genVisTaus[genVisTau_cut]
+
+def getcosthetastar_cs(diphoton, ditau_svfit):
+
+    # https://github.com/cms-analysis/flashgg/blob/1453740b1e4adc7184d5d8aa8a981bdb6b2e5f8e/DataFormats/src/DoubleHTag.cc#L41
+    beam_energy = 6500
+    nevts = len(diphoton)
+    #costhetastar_cs = np.ones(nevts)*-999
+
+    p1 = ak.zip(
+                {
+                "pt": np.zeros(nevts),
+                "eta": np.ones(nevts)*100000000000.0,
+                "phi": np.zeros(nevts),
+                "mass": np.ones(nevts)*beam_energy,
+                "charge": np.zeros(nevts),
+                },
+                with_name="PtEtaPhiMCandidate",
+        )
+
+    p2 = ak.zip(
+                {
+                "pt": np.zeros(nevts),
+                "eta": np.ones(nevts)*-100000000000.0,
+                "phi": np.zeros(nevts),
+                "mass": np.ones(nevts)*beam_energy,
+                "charge": np.zeros(nevts),
+                },
+                with_name="PtEtaPhiMCandidate",
+        )
+
+    hh = diphoton + ditau
+    boostvec = hh.boostvec * -1
+
+    p1_boost = p1.boost(boostvec)
+    p2_boost = p2.boost(boostvec)
+
+    CSaxis = (p1_boost.pvec.unit - p2_boost.pvec.unit).unit
+    diphoton_vec_unit = diphoton.pvec.unit
+
+    return CSaxis.dot(diphoton_vec_unit)
