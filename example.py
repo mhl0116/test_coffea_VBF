@@ -61,7 +61,8 @@ def run(fileset, outpath, jobtag, client, useNanoEvents):
 if __name__ == '__main__':
 
     #samplelist = ["HH_ggTauTau", "VBF_HH_ggTauTau", "Data"]
-    samplelist = ["HH_ggTauTau", "DiPhoton", "GJets_HT40To100", "GJets_HT-100To200", "GJets_HT-200To400", "GJets_HT-400To600", "GJets_HT-600ToInf"]
+    #samplelist = ["HH_ggTauTau"]
+    samplelist = ["HH_ggTauTau", "DiPhoton", "GJets_HT40To100", "GJets_HT-100To200", "GJets_HT-200To400", "GJets_HT-400To600", "GJets_HT-600ToInf", "ZGamma", "VH"]
     fileset = job_utils.make_fileset(samplelist, ["2016","2017","2018"], use_xrootd=True) 
 
     #outdfname = "test_VBFyields_withdata.parquet" 

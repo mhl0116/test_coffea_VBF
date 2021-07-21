@@ -105,9 +105,29 @@ class VBFHHggtautauProcessor(processor.ProcessorABC):
         output["nElectrons"] = n_electrons
         output["nMuons"] = n_muons
 
-        from utils import getcosthetastar_cs
+        from utils import getcosthetastar_cs, helicityCosTheta
         output["costhetastar_cs"] = getcosthetastar_cs(dipho_presel, ditau_svfit) 
         output["svfit_mass"] = ditau_svfit.mass
+        output["costheta_gg"] = helicityCosTheta(dipho_presel, photons[:,0])
+        output["costheta_tautau"] = -999
+        
+        cat_tautau = (n_taus == 2)
+        tau1_cat_tautau = selectedTaus[cat_tautau][:,0] 
+        tau2_cat_tautau = selectedTaus[cat_tautau][:,1] 
+        ditau_cat_tautau = tau1_cat_tautau + tau2_cat_tautau
+        output.loc[ak.to_numpy(cat_tautau), "costheta_tautau"] =  helicityCosTheta(ditau_cat_tautau, tau1_cat_tautau).to_numpy()
+        
+        cat_taue = ( (n_taus == 1) & (n_electrons == 1) )
+        tau1_cat_taue = selectedTaus[cat_taue][:,0] 
+        tau2_cat_taue = selectedElectrons[cat_taue][:,0] 
+        ditau_cat_taue = tau1_cat_taue + tau2_cat_taue
+        output.loc[ak.to_numpy(cat_taue), "costheta_tautau"] = helicityCosTheta(ditau_cat_taue, tau1_cat_taue).to_numpy()
+
+        cat_taumu = ( (n_taus == 1) & (n_muons == 1) )
+        tau1_cat_taumu = selectedTaus[(n_taus == 1) & (n_muons == 1)][:,0] 
+        tau2_cat_taumu = selectedMuons[(n_taus == 1) & (n_muons == 1)][:,0] 
+        ditau_cat_taumu = tau1_cat_taumu + tau2_cat_taumu
+        output.loc[ak.to_numpy(cat_taumu), "costheta_tautau"] = helicityCosTheta(ditau_cat_taumu, tau1_cat_taumu).to_numpy()
         
         scale1fb = 1
         output["weight"] = 1
@@ -146,10 +166,6 @@ class VBFHHggtautauProcessor(processor.ProcessorABC):
         for key, task in get_worker().tasks.items():
             if task.state == "executing":
                 job_id = f"{key[-32:]}_{time.time()}_{dataset}"
-
-        #worker = get_worker()
-        #job_id = f"{worker.worker_address.strip(':')[-2]}_{time.time()}_{random.random()}_{dataset}"
-        #job_id = f"{output['diphoton_mass'][0]}_{time.time()}_{random.random()}_{dataset}"
 
         localoutputname = f"out-{self.job_tag}-{job_id}.parquet"
         #output[ak.to_numpy(all_cuts)].to_parquet(f"./{localoutputname}")

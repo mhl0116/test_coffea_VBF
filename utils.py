@@ -339,3 +339,12 @@ def getcosthetastar_cs(diphoton, ditau_svfit):
     logger.debug(f"{diphoton.pvec[0]}")
 
     return CSaxis.dot(diphoton_vec_unit)
+
+def helicityCosTheta(booster, boosted):
+    # https://github.com/cms-analysis/flashgg/blob/1453740b1e4adc7184d5d8aa8a981bdb6b2e5f8e/DataFormats/src/DoubleHTag.cc#L93
+    ## both inputs are Lorentz vector
+
+    boostVector = booster.pvec
+    boosted.boost(-1*boostVector)
+
+    return np.cos(boosted.theta)
