@@ -1,7 +1,20 @@
 import awkward as ak
+import numpy as np
 # register our candidate behaviors
 from coffea.nanoevents.methods import candidate
 ak.behavior.update(candidate.behavior)
+
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(message)s')
+
+file_handler = logging.FileHandler('logs/utils.log')
+file_handler.setFormatter(formatter)
+
+logger.addHandler(file_handler)
 
 def wrap_items(events, item_names):
 
@@ -141,6 +154,21 @@ def wrap_items(events, item_names):
             )
         )
 
+    if "tautauSVFitLoose" in item_names:
+        wrapped_items.append(
+            ak.zip(
+                {
+                "pt": events["pt_tautauSVFitLoose"],
+                "eta": events["eta_tautauSVFitLoose"],
+                "phi": events["phi_tautauSVFitLoose"],
+                "mass": events["m_tautauSVFitLoose"],
+                "charge": events["m_tautauSVFitLoose"] - events["m_tautauSVFitLoose"],
+                },
+                with_name="PtEtaPhiMCandidate",
+                #behavior=candidate.behavior,
+            )
+        )
+
     return wrapped_items
 
 
@@ -265,3 +293,58 @@ def select_genVisTau(genVisTaus, selectedPhotons, selectedTaus):
     genVisTau_cut = pt_cut & eta_cut & jetId_cut & dR_pho_cut & dR_ele_cut & dR_muon_cut & dR_tau_cut
 
     return genVisTaus[genVisTau_cut]
+
+def getcosthetastar_cs(diphoton, ditau_svfit):
+
+    # https://github.com/cms-analysis/flashgg/blob/1453740b1e4adc7184d5d8aa8a981bdb6b2e5f8e/DataFormats/src/DoubleHTag.cc#L41
+    beam_energy = 6500
+    nevts = len(diphoton)
+    costhetastar_cs = np.ones(nevts)*-999
+
+    p1 = ak.zip(
+                {
+                "x": np.zeros(nevts),
+                #"py": np.ones(nevts)*100.0,
+                "y": np.zeros(nevts),
+                "z": np.ones(nevts)*beam_energy,
+                "t": np.ones(nevts)*beam_energy,
+                },
+                with_name="LorentzVector",
+        )
+
+    p2 = ak.zip(
+                {
+                "x": np.zeros(nevts),
+                #"py": np.ones(nevts)*100.0,
+                "y": np.zeros(nevts),
+                "z": np.ones(nevts)*beam_energy*(-1),
+                "t": np.ones(nevts)*beam_energy,
+                },
+                with_name="LorentzVector",
+        )
+
+    ## check nan
+    hh = diphoton + ditau_svfit
+    boostvec = hh.boostvec * -1
+
+    p1_boost = p1.boost(boostvec)
+    p2_boost = p2.boost(boostvec)
+
+    CSaxis = (p1_boost.pvec.unit - p2_boost.pvec.unit).unit
+    diphoton_vec_unit = diphoton.pvec.unit
+
+    logger.debug(f"{p1_boost[0].to_list()}")
+    logger.debug(f"{p1_boost.pvec[0]}")
+    logger.debug(f"{diphoton[0].to_list()}")
+    logger.debug(f"{diphoton.pvec[0]}")
+
+    return CSaxis.dot(diphoton_vec_unit)
+
+def helicityCosTheta(booster, boosted):
+    # https://github.com/cms-analysis/flashgg/blob/1453740b1e4adc7184d5d8aa8a981bdb6b2e5f8e/DataFormats/src/DoubleHTag.cc#L93
+    ## both inputs are Lorentz vector
+
+    boostVector = booster.pvec
+    boosted.boost(-1*boostVector)
+
+    return np.cos(boosted.theta)
